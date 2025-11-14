@@ -28,13 +28,9 @@ public class EmprestimoSerivce {
         Usuario usuario = usuarioRepo.findById(usuarioId).orElseThrow();
         List<Emprestimo> ativos = emprestimoRepo.findAll()
                 .stream().filter(e -> e.getUsuario().getId().equals(usuarioId) && e.getDataDevolucao() == null).toList();
-        //Busca todos os empréstimos registrados, transforma em stream(fluxo que permite colocar filtros, mapeamentos)
-        //filtra os emprestimos apenas para os usuarios com o userId informado e ainda não foram devolvidos e transforma numa lista
 
 
         boolean possuiAtraso = ativos.stream().anyMatch(e -> e.getDataLimite().isBefore(LocalDate.now()));
-        //transforma em stream, metodo que testa se há pelo menos um elemento que atende as condições especificas
-        //lambda para cada emprestimo verifica se a data limite for anterior a data atual(atrasado)
         if (usuario.getMultaPendente().compareTo(BigDecimal.ZERO) > 0) return "Usuário possui multa pendente!";
         if (ativos.size() >= usuario.getLimiteEmprestimos()) return "Limite de empréstimos atingido!";
         if (possuiAtraso) return "Usuário possui item em atraso!";
@@ -65,15 +61,11 @@ public class EmprestimoSerivce {
         Emprestimo e = emprestimoRepo.findById(emprestimoId).orElseThrow();
         e.setDataDevolucao(LocalDate.now());
         if (e.getDataLimite().isBefore(LocalDate.now())) {
-            //verifica se a data de devolução é anterior a data atual(atrasado)
             long diasAtraso = ChronoUnit.DAYS.between(e.getDataLimite(), LocalDate.now());
-            //calcula quantos dias de atraso o usuario teve
             BigDecimal multa = BigDecimal.valueOf(diasAtraso).multiply(BigDecimal.valueOf(2));
-            //calcula o valor da multa o dia custa 2 reais
             e.setMultaGerada(multa);
             Usuario u = e.getUsuario();
             u.setMultaPendente(u.getMultaPendente().add(multa));
-            //Soma essa multa ao total de multas pendentes do usuário
             usuarioRepo.save(u);
         }
         if (e.getTipoItem().equalsIgnoreCase("Livro")) {
